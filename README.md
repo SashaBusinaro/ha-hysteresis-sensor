@@ -1,46 +1,83 @@
-# Notice
+<div align="center">
 
-The component and platforms in this repository are not meant to be used by a
-user, but as a "blueprint" that custom component developers can build
-upon, to make more awesome stuff.
+# Hysteresis Filter Sensor
 
-HAVE FUN! 😎
+Reduce database writes from “chatty” sensors by only recording significant changes.
 
-## Why?
+</div>
 
-This is simple, by having custom_components look (README + structure) the same
-it is easier for developers to help each other and for users to start using them.
+## What it does
 
-If you are a developer and you want to add things to this "blueprint" that you think more
-developers will have use for, please open a PR to add it :)
+This custom integration adds a sensor platform that mirrors another sensor’s state, but only updates when the change is greater than a configured threshold:
 
-## What?
+- Absolute threshold: update when |new − last_recorded| > value
+- Percentage threshold: update when |new − last_recorded| > |last_recorded| × (value / 100)
 
-This repository contains multiple files, here is a overview:
+It restores its last recorded state on Home Assistant restarts, preventing spurious updates on boot. Non‑numeric states (unknown, unavailable) are always propagated immediately.
 
-File | Purpose | Documentation
--- | -- | --
-`.devcontainer.json` | Used for development/testing with Visual Studio Code. | [Documentation](https://code.visualstudio.com/docs/remote/containers)
-`.github/ISSUE_TEMPLATE/*.yml` | Templates for the issue tracker | [Documentation](https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository)
-`custom_components/integration_blueprint/*` | Integration files, this is where everything happens. | [Documentation](https://developers.home-assistant.io/docs/creating_component_index)
-`CONTRIBUTING.md` | Guidelines on how to contribute. | [Documentation](https://help.github.com/en/github/building-a-strong-community/setting-guidelines-for-repository-contributors)
-`LICENSE` | The license file for the project. | [Documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/licensing-a-repository)
-`README.md` | The file you are reading now, should contain info about the integration, installation and configuration instructions. | [Documentation](https://help.github.com/en/github/writing-on-github/basic-writing-and-formatting-syntax)
-`requirements.txt` | Python packages used for development/lint/testing this integration. | [Documentation](https://pip.pypa.io/en/stable/user_guide/#requirements-files)
+## Example use cases
 
-## How?
+- Temperature or power sensors that report tiny fluctuations multiple times per minute
+- Battery percentage sensors with 0.1% steps
 
-1. Create a new repository in GitHub, using this repository as a template by clicking the "Use this template" button in the GitHub UI.
-1. Open your new repository in Visual Studio Code devcontainer (Preferably with the "`Dev Containers: Clone Repository in Named Container Volume...`" option).
-1. Rename all instances of the `integration_blueprint` to `custom_components/<your_integration_domain>` (e.g. `custom_components/awesome_integration`).
-1. Rename all instances of the `Integration Blueprint` to `<Your Integration Name>` (e.g. `Awesome Integration`).
-1. Run the `scripts/develop` to start HA and test out your new integration.
+### Database optimization (recorder)
 
-## Next steps
+To actually reduce database writes, configure the [Recorder](https://www.home-assistant.io/integrations/recorder) to exclude the original noisy source sensor while keeping the new filtered sensor included.
 
-These are some next steps you may want to look into:
-- Add tests to your integration, [`pytest-homeassistant-custom-component`](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component) can help you get started.
-- Add brand images (logo/icon) to https://github.com/home-assistant/brands.
-- Create your first release.
-- Share your integration on the [Home Assistant Forum](https://community.home-assistant.io/).
-- Submit your integration to [HACS](https://hacs.xyz/docs/publish/start).
+Example (configuration.yaml):
+
+```yaml
+recorder:
+  exclude:
+    entities:
+      # Stop recording the original, noisy sensor
+      - sensor.chatty_power_meter
+```
+
+Do not exclude the filtered sensor entity. Restart Home Assistant after changing the configuration.
+
+## Installation
+
+### HACS (recommended)
+
+1. In HACS, add this repository as a custom integration repository.
+2. Install “Hysteresis Filter Sensor”.
+3. Restart Home Assistant.
+
+### Manual
+
+1. Copy the folder `custom_components/hysteresis_sensor/` into your Home Assistant `config/custom_components/` directory.
+2. Restart Home Assistant.
+
+## Configuration (UI only)
+
+Settings are added via Settings → Devices & Services → “Add Integration” → “Hysteresis Filter Sensor”.
+
+You’ll be asked for:
+
+- Name: Friendly name for the filtered sensor
+- Source entity: The sensor to monitor (entity selector)
+- Threshold type: Absolute or Percentage
+- Threshold value: Numeric threshold value
+
+The integration will create a new sensor that:
+
+- Inherits unit_of_measurement, device_class, state_class from the source when available
+- Adds an attribute `source_entity_id` to show what it monitors
+
+## How it works
+
+Core logic:
+
+1. If the source state is non‑numeric (unknown/unavailable), the filter sensor updates immediately to match.
+2. If the filter sensor has no stored numeric state (first run or failed restore), it adopts the current source value immediately.
+3. Otherwise, it calculates the delta from its last recorded numeric value and only updates when it exceeds the configured threshold (absolute or percentage).
+
+## Troubleshooting
+
+- If the sensor never updates, double‑check the threshold type/value and ensure the source produces numeric states.
+- If attributes (unit, class) don’t appear, ensure they are provided by the source sensor.
+
+## License
+
+MIT — see `LICENSE`.

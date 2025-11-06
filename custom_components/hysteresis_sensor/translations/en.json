@@ -1,0 +1,39 @@
+{
+  "title": "Hysteresis Filter Sensor",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hysteresis Filter Sensor",
+        "description": "Create a filter sensor that only updates when change exceeds a threshold.",
+        "data": {
+          "name": "Name",
+          "source_entity_id": "Source entity",
+          "threshold_type": "Threshold type",
+          "threshold_value": "Threshold value"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Source entity not found",
+      "invalid_threshold": "Threshold value must be greater than 0"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure Hysteresis Filter Sensor",
+        "description": "Adjust the threshold settings for your hysteresis filter sensor.",
+        "data": {
+          "threshold_type": "Threshold type",
+          "threshold_value": "Threshold value"
+        }
+      }
+    },
+    "error": {
+      "invalid_threshold": "Threshold value must be greater than 0"
+    }
+  }
+}
