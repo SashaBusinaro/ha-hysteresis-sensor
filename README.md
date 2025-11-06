@@ -1,5 +1,9 @@
 <div align="center">
 
+[![Static Badge](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=white)](https://www.hacs.xyz/docs/faq/custom_repositories/)
+[![Release](https://img.shields.io/github/v/release/sashabusinaro/hysteresis_sensor?style=for-the-badge&color=blue)](https://github.com/sashabusinaro/hysteresis_sensor/releases)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/sashabusinaro/hysteresis_sensor/total?style=for-the-badge&color=green)
+
 # Hysteresis Filter Sensor
 
 Reduce database writes from “chatty” sensors by only recording significant changes.
