@@ -1,11 +1,11 @@
 {
   "domain": "hysteresis_sensor",
   "name": "Hysteresis Filter Sensor",
-  "version": "0.1.0",
+  "codeowners": ["@SashaBusinaro"],
+  "config_flow": true,
   "documentation": "https://github.com/SashaBusinaro/hysteresis_sensor",
   "issue_tracker": "https://github.com/SashaBusinaro/hysteresis_sensor/issues",
-  "codeowners": ["@SashaBusinaro"],
   "iot_class": "calculated",
   "requirements": [],
-  "config_flow": true
+  "version": "0.1.0"
 }

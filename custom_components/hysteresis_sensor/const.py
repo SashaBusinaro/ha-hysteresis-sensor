@@ -1,3 +1,5 @@
+"""Constants for the Hysteresis Filter Sensor integration."""
+
 from typing import Final
 
 DOMAIN: Final = "hysteresis_sensor"

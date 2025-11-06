@@ -2,27 +2,28 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import hashlib
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.restore_state import RestoreEntity
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     CONF_NAME,
     CONF_SOURCE_ENTITY_ID,
     CONF_THRESHOLD_TYPE,
     CONF_THRESHOLD_VALUE,
-    DOMAIN,
     THRESHOLD_ABSOLUTE,
-    THRESHOLD_PERCENTAGE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
     _attr_available = True
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the hysteresis sensor entity."""
         self.hass = hass
         self._entry = entry
         data = entry.data
@@ -73,6 +75,7 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
         return {"source_entity_id": self._source_entity_id}
 
     async def async_added_to_hass(self) -> None:
@@ -121,12 +124,13 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
         self.async_write_ha_state()
 
     async def async_will_remove_from_hass(self) -> None:
+        """Cleanup when entity is removed."""
         if self._unsub:
             self._unsub()
             self._unsub = None
 
     @callback
-    def _handle_source_event(self, event) -> None:
+    def _handle_source_event(self, event: Any) -> None:
         new_state = event.data.get("new_state")
         if new_state is None:
             # Entity removed; treat as unknown
@@ -159,7 +163,8 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
         if self._threshold_type == THRESHOLD_ABSOLUTE:
             should_update = delta > self._threshold_value
             _LOGGER.debug(
-                "Hysteresis sensor %s: absolute threshold check - delta: %s, threshold: %s, should_update: %s",
+                "Hysteresis sensor %s: absolute threshold check - "
+                "delta: %s, threshold: %s, should_update: %s",
                 self._name,
                 delta,
                 self._threshold_value,
@@ -170,7 +175,8 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
             pct = (self._threshold_value / 100.0) * ref
             should_update = delta > pct
             _LOGGER.debug(
-                "Hysteresis sensor %s: percentage threshold check - delta: %s, pct_threshold: %s (%.1f%%), should_update: %s",
+                "Hysteresis sensor %s: percentage threshold check - "
+                "delta: %s, pct_threshold: %s (%.1f%%), should_update: %s",
                 self._name,
                 delta,
                 pct,
