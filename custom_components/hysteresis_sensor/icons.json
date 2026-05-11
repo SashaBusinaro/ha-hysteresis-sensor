@@ -1,0 +1,9 @@
+{
+  "entity": {
+    "sensor": {
+      "hysteresis_filter": {
+        "default": "mdi:chart-bell-curve"
+      }
+    }
+  }
+}

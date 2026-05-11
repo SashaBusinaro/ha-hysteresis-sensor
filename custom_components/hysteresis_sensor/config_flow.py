@@ -1,4 +1,4 @@
-"""Config flow for Hysteresis Filter Sensor."""
+"""Config flow for Hysteresis Filter."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers.selector import selector
 
 from .const import (
-    CONF_NAME,
     CONF_SOURCE_ENTITY_ID,
     CONF_THRESHOLD_TYPE,
     CONF_THRESHOLD_VALUE,
@@ -26,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class HysteresisSensorConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Hysteresis Filter Sensor."""
+    """Handle a config flow for Hysteresis Filter."""
 
     VERSION = 1
 
@@ -37,16 +37,13 @@ class HysteresisSensorConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Validate source entity exists
             if not self.hass.states.get(user_input[CONF_SOURCE_ENTITY_ID]):
                 errors["source_entity_id"] = "entity_not_found"
 
-            # Validate threshold value
             if user_input[CONF_THRESHOLD_VALUE] <= 0:
                 errors["threshold_value"] = "invalid_threshold"
 
             if not errors:
-                # Build a stable unique id using name+source
                 raw_uid = f"{user_input[CONF_SOURCE_ENTITY_ID]}|{user_input[CONF_NAME]}"
                 unique_id = hashlib.sha256(raw_uid.encode()).hexdigest()
                 await self.async_set_unique_id(unique_id)
@@ -64,7 +61,14 @@ class HysteresisSensorConfigFlow(ConfigFlow, domain=DOMAIN):
                     {"entity": {"domain": "sensor"}}
                 ),
                 vol.Required(CONF_THRESHOLD_TYPE, default=THRESHOLD_ABSOLUTE): selector(
-                    {"select": {"options": [THRESHOLD_ABSOLUTE, THRESHOLD_PERCENTAGE]}}
+                    {
+                        "select": {
+                            "options": [
+                                {"value": THRESHOLD_ABSOLUTE, "label": "Absolute"},
+                                {"value": THRESHOLD_PERCENTAGE, "label": "Percentage"},
+                            ]
+                        }
+                    }
                 ),
                 vol.Required(CONF_THRESHOLD_VALUE, default=1.0): selector(
                     {"number": {"min": 0, "step": 0.01, "mode": "box"}}
@@ -79,18 +83,14 @@ class HysteresisSensorConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> OptionsFlowHandler:  # type: ignore[override]
+        _config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
         """Return the options flow handler for this integration."""
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options for an existing entry (thresholds only)."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Store the config entry for options updates."""
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -99,7 +99,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Validate threshold value
             if user_input[CONF_THRESHOLD_VALUE] <= 0:
                 errors["threshold_value"] = "invalid_threshold"
 
@@ -108,7 +107,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     "Updating options for hysteresis sensor: %s",
                     self.config_entry.title,
                 )
-                # Save new options (will trigger reload via update listener)
                 return self.async_create_entry(title="", data=user_input)
 
         current_type = self.config_entry.options.get(
@@ -123,7 +121,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_THRESHOLD_TYPE, default=current_type): selector(
-                    {"select": {"options": [THRESHOLD_ABSOLUTE, THRESHOLD_PERCENTAGE]}}
+                    {
+                        "select": {
+                            "options": [
+                                {"value": THRESHOLD_ABSOLUTE, "label": "Absolute"},
+                                {"value": THRESHOLD_PERCENTAGE, "label": "Percentage"},
+                            ]
+                        }
+                    }
                 ),
                 vol.Required(CONF_THRESHOLD_VALUE, default=current_value): selector(
                     {"number": {"min": 0, "step": 0.01, "mode": "box"}}

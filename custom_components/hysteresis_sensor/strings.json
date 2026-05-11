@@ -1,9 +1,9 @@
 {
-  "title": "Hysteresis Filter Sensor",
+  "title": "Hysteresis Filter",
   "config": {
     "step": {
       "user": {
-        "title": "Hysteresis Filter Sensor",
+        "title": "Hysteresis Filter",
         "description": "Create a filter sensor that only updates when change exceeds a threshold.",
         "data": {
           "name": "Name",
@@ -24,7 +24,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configure Hysteresis Filter Sensor",
+        "title": "Configure Hysteresis Filter",
         "description": "Adjust the threshold settings for your hysteresis filter sensor.",
         "data": {
           "threshold_type": "Threshold type",

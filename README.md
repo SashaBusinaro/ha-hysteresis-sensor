@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/sashabusinaro/hysteresis_sensor?style=for-the-badge&color=blue)](https://github.com/sashabusinaro/hysteresis_sensor/releases)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/sashabusinaro/hysteresis_sensor/total?style=for-the-badge&color=green)
 
-# Hysteresis Filter Sensor
+# Hysteresis Filter
 
 Reduce database writes from “chatty” sensors by only recording significant changes.
 
@@ -45,7 +45,7 @@ Do not exclude the filtered sensor entity. Restart Home Assistant after changing
 ### HACS (recommended)
 
 1. In HACS, add this repository as a custom integration repository.
-2. Install “Hysteresis Filter Sensor”.
+2. Install “Hysteresis Filter”.
 3. Restart Home Assistant.
 
 ### Manual
@@ -55,7 +55,7 @@ Do not exclude the filtered sensor entity. Restart Home Assistant after changing
 
 ## Configuration (UI only)
 
-Settings are added via Settings → Devices & Services → “Add Integration” → “Hysteresis Filter Sensor”.
+Settings are added via Settings → Devices & Services → “Add Integration” → “Hysteresis Filter”.
 
 You’ll be asked for:
 

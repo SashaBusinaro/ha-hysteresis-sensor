@@ -1,4 +1,4 @@
-"""Hysteresis Filter Sensor integration setup."""
+"""Hysteresis Filter integration setup."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Hysteresis Filter Sensor from a config entry."""
+    """Set up Hysteresis Filter from a config entry."""
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     # Reload the platform when options change
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))

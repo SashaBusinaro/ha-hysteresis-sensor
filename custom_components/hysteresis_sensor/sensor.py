@@ -1,13 +1,12 @@
-"""Hysteresis Filter Sensor platform."""
+"""Hysteresis Filter platform."""
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import CONF_NAME, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -19,7 +18,6 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    CONF_NAME,
     CONF_SOURCE_ENTITY_ID,
     CONF_THRESHOLD_TYPE,
     CONF_THRESHOLD_VALUE,
@@ -28,29 +26,29 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    _hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up the Hysteresis Filter Sensor from a config entry."""
-    async_add_entities([HysteresisSensorEntity(hass, entry)])
+    """Set up the Hysteresis Filter from a config entry."""
+    async_add_entities([HysteresisSensorEntity(entry)])
 
 
 class HysteresisSensorEntity(SensorEntity, RestoreEntity):
     """A sensor that only updates when change exceeds a threshold."""
 
     _attr_should_poll = False
-    _attr_available = True
+    _attr_translation_key = "hysteresis_filter"
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the hysteresis sensor entity."""
-        self.hass = hass
         self._entry = entry
         data = entry.data
         opts = entry.options
         self._name: str = data[CONF_NAME]
         self._source_entity_id: str = data[CONF_SOURCE_ENTITY_ID]
-        # Read thresholds from options first, fallback to data
         self._threshold_type: str = opts.get(
             CONF_THRESHOLD_TYPE, data[CONF_THRESHOLD_TYPE]
         )
@@ -58,15 +56,11 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
             opts.get(CONF_THRESHOLD_VALUE, data[CONF_THRESHOLD_VALUE])
         )
 
-        # Persistent record of the last numeric value we reported
         self._last_recorded_numeric: float | None = None
 
-        # Entity presentation
         self._attr_name = self._name
-        raw_uid = f"{self._source_entity_id}|{self._name}"
-        self._attr_unique_id = hashlib.sha256(raw_uid.encode()).hexdigest()
+        self._attr_unique_id = entry.unique_id
 
-        # Attributes inherited from source
         self._attr_device_class = None
         self._attr_state_class = None
         self._attr_native_unit_of_measurement = None
@@ -80,21 +74,17 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
 
     async def async_added_to_hass(self) -> None:
         """Restore state and subscribe to source updates."""
-        # Restore last state
         last = await self.async_get_last_state()
         if last is not None:
             restored_state = last.state
-            # Try to restore numeric memory and display value
             num = _to_float(restored_state)
             if num is not None:
                 self._last_recorded_numeric = num
                 self._attr_native_value = num
                 self._attr_available = True
             else:
-                # Mirror non-numeric restored state
                 self._apply_non_numeric_state(restored_state)
 
-        # On first run without a valid last numeric, adopt current source
         if self._last_recorded_numeric is None:
             src_state = self.hass.states.get(self._source_entity_id)
             if src_state is not None:
@@ -107,20 +97,16 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
                 else:
                     self._apply_non_numeric_state(src_state.state)
         else:
-            # If we restored a numeric value but the current source is non-numeric
-            # (e.g., unknown/unavailable at startup), mirror that state immediately
             src_state = self.hass.states.get(self._source_entity_id)
             if src_state is not None:
                 self._update_inherited_attributes(src_state.attributes)
                 if _to_float(src_state.state) is None:
                     self._apply_non_numeric_state(src_state.state)
 
-        # Listen for state changes
         self._unsub = async_track_state_change_event(
             self.hass, [self._source_entity_id], self._handle_source_event
         )
 
-        # Ensure state is written after initial setup
         self.async_write_ha_state()
 
     async def async_will_remove_from_hass(self) -> None:
@@ -133,24 +119,20 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
     def _handle_source_event(self, event: Any) -> None:
         new_state = event.data.get("new_state")
         if new_state is None:
-            # Entity removed; treat as unknown
             self._attr_native_value = STATE_UNKNOWN
             self.async_write_ha_state()
             return
 
-        # Update inherited attributes every time
         self._update_inherited_attributes(new_state.attributes)
 
         new_val_str = new_state.state
         new_num = _to_float(new_val_str)
 
-        # If source is non-numeric -> propagate immediately
         if new_num is None:
             self._apply_non_numeric_state(new_val_str)
             self.async_write_ha_state()
             return
 
-        # Initial adoption if we don't have a last numeric
         if self._last_recorded_numeric is None:
             self._last_recorded_numeric = new_num
             self._attr_native_value = new_num
@@ -208,7 +190,6 @@ class HysteresisSensorEntity(SensorEntity, RestoreEntity):
             self._attr_available = True
             self._attr_native_value = None
         else:
-            # Fallback: set state as-is and consider entity available
             self._attr_available = True
             self._attr_native_value = state_str
 
@@ -218,5 +199,5 @@ def _to_float(value: Any) -> float | None:
         return None
     try:
         return float(value)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return None
